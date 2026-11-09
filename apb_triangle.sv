@@ -18,12 +18,30 @@ module apb_triangle (
     logic [31:0] side_a;
     logic [31:0] side_b;
     logic [31:0] side_c;
+    // 64-битные промежуточные сигналы для отлова переполнения
+    logic [63:0] sum64;                   // A + B + C в 64 битах
+    logic [63:0] sum_ab, sum_ac, sum_bc;  // попарные суммы для проверки неравенства
+    logic        sum_overflow;            // 1 — сумма не влезла в 32 бита
+    logic        triangle_valid;          // 1 — треугольник существует
 
     enum logic [1:0] {
         APB_SETUP,    // фаза SETUP: psel=1, penable=0
         APB_W_ENABLE, // фаза ACCESS для записи
         APB_R_ENABLE  // фаза ACCESS для чтения
     } apb_st;
+
+
+    // Комбинационный расчёт периметра и флагов
+    always @(*) begin
+        sum64  = {32'h0, side_a} + {32'h0, side_b} + {32'h0, side_c};
+        sum_ab = {32'h0, side_a} + {32'h0, side_b};
+        sum_ac = {32'h0, side_a} + {32'h0, side_c};
+        sum_bc = {32'h0, side_b} + {32'h0, side_c};
+        sum_overflow   = (sum64[63:32] != 32'h0);
+        triangle_valid = (sum_ab > {32'h0, side_c}) &&
+                         (sum_ac > {32'h0, side_b}) &&
+                         (sum_bc > {32'h0, side_a});
+    end
 
     always @(posedge pclk) begin
         if (!presetn) begin
@@ -39,7 +57,7 @@ module apb_triangle (
             case (apb_st)
 
                 APB_SETUP: begin: apb_setup_st
-                    // очищаем prdata/pready/pslverr к началу новой транзакции, чтобы не было «залипших» значений с прошлой операции
+                    // очищение prdata/pready/pslverr к началу новой транзакции, чтобы не было «залипших» значений с прошлой операции
                     prdata  <= '0;
                     pslverr <= 1'b0;
                     pready  <= 1'b0;
@@ -72,7 +90,23 @@ module apb_triangle (
                             8'h0:    prdata <= side_a;
                             8'h4:    prdata <= side_b;
                             8'h8:    prdata <= side_c;
-                            8'hC:    prdata <= 32'h0; // заглушка
+                            8'hC: begin
+                                if (sum_overflow) begin
+                                    prdata  <= 32'h0;
+                                    pslverr <= 1'b1;
+                                    $display("[TRIANGLE] ERROR: sum overflow (A=0x%08h, B=0x%08h, C=0x%08h)",
+                                             side_a, side_b, side_c);
+                                end else if (!triangle_valid) begin
+                                    prdata  <= 32'h0;
+                                    pslverr <= 1'b1;
+                                    $display("[TRIANGLE] ERROR: triangle inequality violated (A=0x%08h, B=0x%08h, C=0x%08h)",
+                                             side_a, side_b, side_c);
+                                end else begin
+                                    prdata <= sum64[31:0];
+                                    $display("[TRIANGLE] READ 0xC: perimeter=0x%08h (A=0x%08h, B=0x%08h, C=0x%08h)",
+                                             sum64[31:0], side_a, side_b, side_c);
+                                end
+                            end
                             default: pslverr <= 1'b1; // неверный адрес
                         endcase
                         apb_st <= APB_SETUP;
