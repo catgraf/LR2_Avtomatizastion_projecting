@@ -1,0 +1,68 @@
+# =========================
+# Visual Studio Code
+# =========================
+.vscode/
+!.vscode/extensions.json
+*.txt
+
+# =========================
+# GTKWave
+# =========================
+*.gtkw
+
+# =========================
+# Simulation outputs
+# =========================
+*.vcd
+*.fst
+*.lxt
+*.lxt2
+*.ghw
+*.vvp
+
+# =========================
+# Verilog / Icarus Verilog
+# =========================
+*.out
+*.o
+*.vvp
+a.out
+
+# =========================
+# Vivado
+# =========================
+*.jou
+*.log
+*.str
+*.wdb
+*.wcfg
+*.bit
+*.bin
+*.ltx
+*.dcp
+*.runs/
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.Xil/
+
+# =========================
+# Quartus
+# =========================
+db/
+incremental_db/
+output_files/
+*.qws
+*.sof
+*.pof
+*.jic
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.bak
+*~
+.DS_Store
