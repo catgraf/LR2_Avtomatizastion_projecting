@@ -64,7 +64,7 @@ module apb_master (
                 end: master_setup_st
 
                 MASTER_ACCESS: begin: master_access_st
-                    // фаза ACCESS: ждём pready от слейва
+                    // фаза ACCESS: ждёт pready от слейва
                     if (pready) begin
                         ready <= 1'b1;
                         err   <= pslverr;

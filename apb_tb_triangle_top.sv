@@ -20,7 +20,7 @@ module tb_triangle_top;
   logic [31:0] address;
   logic [31:0] data_to_device;
   logic [31:0] data_from_device;
-  logic        err_seen; // захват err: сбрасывается в MASTER_DONE, проверяем через монитор
+  logic        err_seen; // захват err: сбрасывается в MASTER_DONE
 
   apb_triangle_top TOP (
     .pclk    (pclk),
@@ -175,6 +175,14 @@ module tb_triangle_top;
         $error("[TB] FAIL T9: expected err for 0,0,0");
     else
         $display("[TB] PASS T9: 0,0,0 -> err");
+
+    // T10: запись по невалидному адресу -> err
+    err_seen = 1'b0;
+    apb_write(p_device_offset + 16, 32'hDEAD_BEEF);
+    if (err_seen !== 1'b1)
+        $error("[TB] FAIL T10: expected err on invalid write addr");
+    else
+        $display("[TB] PASS T10: write invalid addr -> err");
 
     repeat (10) @(posedge pclk);
     $finish();
